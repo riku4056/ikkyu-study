@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="一級建築士">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏗</text></svg>">
+<title>一級建築士 進捗管理</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <h1>🏗 一級建築士 進捗管理</h1>
+    <div class="countdown">
+      <span class="cd-label">試験まで あと</span>
+      <span id="days-left" class="cd-num">--</span>
+      <span class="cd-label">日</span>
+    </div>
+    <div class="cd-sub">
+      <span id="exam-date">2026-07-26</span> 学科試験
+    </div>
+
+    <div class="overall">
+      <div class="overall-bar">
+        <div class="bar-fill" id="overall-fill"></div>
+        <div class="bar-marker bar-marker-min" title="最低4周ライン"></div>
+        <div class="bar-marker bar-marker-target" title="目標6周ライン"></div>
+      </div>
+      <div class="overall-stats">
+        <span id="overall-pct">0%</span>
+        <span class="dim">/</span>
+        <span>全体進捗（6周=100%）</span>
+      </div>
+      <div class="pace">
+        🎯 目標6周まで <strong id="pace-target">--</strong> 単元・周
+        　/　1日 <strong id="pace-per-day">--</strong> 単元・周必要
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main id="subject-view"></main>
+
+  <section class="daily-log">
+    <h2>📝 今日の記録</h2>
+    <div class="log-form">
+      <label>解いた問題数 <input type="number" id="log-problems" min="0" placeholder="60"></label>
+      <label>正答数 <input type="number" id="log-correct" min="0" placeholder="42"></label>
+      <label>気分
+        <select id="log-mood">
+          <option value="5">★★★★★</option>
+          <option value="4">★★★★☆</option>
+          <option value="3" selected>★★★☆☆</option>
+          <option value="2">★★☆☆☆</option>
+          <option value="1">★☆☆☆☆</option>
+        </select>
+      </label>
+      <button id="log-save">保存</button>
+    </div>
+    <div class="log-history" id="log-history"></div>
+  </section>
+
+  <footer>
+    <button id="export-btn">📦 データエクスポート</button>
+    <button id="import-btn">📥 インポート</button>
+    <input type="file" id="import-file" accept="application/json" hidden>
+    <button id="reset-btn" class="danger">🗑 リセット</button>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
