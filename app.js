@@ -447,37 +447,44 @@ function formatTime(s) {
 }
 
 function startMeditate() {
+  console.log('[meditate] start clicked');
   meditate.running = true;
   meditate.remaining = meditate.duration;
   $('#meditate-start').hidden = true;
   $('#meditate-stop').hidden = false;
   document.querySelector('.breathing-circle').classList.add('active');
 
-  const musicType = $('#music-select').value;
-  const wantVoice = $('#toggle-voice').checked;
-
-  // iOS Safari対策: ユーザージェスチャー内で speechSynthesis を起動
-  if (wantVoice && 'speechSynthesis' in window) {
-    speechSynthesis.cancel();
-    // ウォームアップとして即座に挨拶（これでiOSの「初回必須ジェスチャー」を満たす）
-    speak('瞑想を始めます。楽な姿勢で目を閉じてください', { rate: 0.85 });
-    // iOSは15秒で自動pauseされるバグ対策のkeepalive
-    meditate.voiceKeepaliveId = setInterval(() => {
-      if (speechSynthesis.paused) speechSynthesis.resume();
-    }, 5000);
-  }
-
-  if (musicType !== 'off') startMusic(musicType);
-  if (wantVoice) scheduleVoice();
-  startBreathingText();
-
+  // タイマーは最優先で開始
   meditate.timerId = setInterval(() => {
     meditate.remaining -= 1;
     $('#meditate-timer').textContent = formatTime(meditate.remaining);
-    if (meditate.remaining <= 0) {
-      finishMeditate();
-    }
+    if (meditate.remaining <= 0) finishMeditate();
   }, 1000);
+
+  const musicType = $('#music-select').value;
+  const wantVoice = $('#toggle-voice').checked;
+  console.log('[meditate] music:', musicType, 'voice:', wantVoice);
+
+  // 音声: ユーザージェスチャー内で発火
+  if (wantVoice && 'speechSynthesis' in window) {
+    try {
+      speechSynthesis.cancel();
+      speak('瞑想を始めます。楽な姿勢で目を閉じてください', { rate: 0.85 });
+      meditate.voiceKeepaliveId = setInterval(() => {
+        if (speechSynthesis.paused) speechSynthesis.resume();
+      }, 5000);
+    } catch (e) { console.warn('voice setup failed:', e); }
+  }
+
+  // 音楽
+  if (musicType && musicType !== 'off') {
+    try { startMusic(musicType); }
+    catch (e) { console.warn('music setup failed:', e); }
+  }
+
+  // 残りのガイド & 呼吸テキスト
+  try { if (wantVoice) scheduleVoice(); } catch (e) { console.warn(e); }
+  try { startBreathingText(); } catch (e) { console.warn(e); }
 }
 
 function stopMeditate() {
