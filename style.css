@@ -812,6 +812,8 @@ footer button.danger:hover {
   animation: fadeIn 0.4s ease;
 }
 
+[hidden] { display: none !important; }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
