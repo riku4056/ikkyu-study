@@ -150,43 +150,26 @@ function renderSubjectView() {
       <div class="cat-item" data-cat="${escapeAttr(cat)}" data-status="${status}">
         <div class="cat-icon">${icon}</div>
         <div class="cat-name">${escapeHtml(cat)}</div>
+        <div class="cat-count"><strong>${rounds}</strong><span>/${state.config.targetRounds}</span></div>
+        <button class="cat-undo-btn" data-action="undo" aria-label="1周減らす">−</button>
         <div class="cat-mini-bar"><div class="cat-mini-fill" style="width:${miniPct}%; background:${s.color}"></div></div>
-        <div class="cat-count"><strong>${rounds}</strong>/${state.config.targetRounds}</div>
       </div>
     `;
   }
   html += '</div>';
   view.innerHTML = html;
 
-  // バインド: タップで+1, 長押しで-1
+  // バインド: カード本体タップで+1, −ボタンで-1
   $$('#subject-view .cat-item').forEach(el => {
-    let pressTimer = null;
-    let longPressed = false;
-
-    const start = () => {
-      longPressed = false;
-      pressTimer = setTimeout(() => {
-        longPressed = true;
-        const cat = el.dataset.cat;
-        decrementRound(state.activeSubject, cat);
-      }, 600);
-    };
-    const cancel = () => clearTimeout(pressTimer);
-    const click = () => {
-      cancel();
-      if (longPressed) return;
+    el.addEventListener('click', (e) => {
       const cat = el.dataset.cat;
-      incrementRound(state.activeSubject, cat);
-    };
-
-    el.addEventListener('touchstart', start, { passive: true });
-    el.addEventListener('touchend', click);
-    el.addEventListener('touchcancel', cancel);
-    el.addEventListener('touchmove', cancel);
-
-    el.addEventListener('mousedown', start);
-    el.addEventListener('mouseup', click);
-    el.addEventListener('mouseleave', cancel);
+      if (e.target.closest('[data-action="undo"]')) {
+        e.stopPropagation();
+        decrementRound(state.activeSubject, cat);
+      } else {
+        incrementRound(state.activeSubject, cat);
+      }
+    });
   });
 }
 

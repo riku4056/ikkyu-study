@@ -143,13 +143,22 @@ body {
   background: var(--bg-2);
   border-radius: 8px;
   padding: 10px 14px;
-  display: inline-block;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: center;
+  align-items: baseline;
+  max-width: 100%;
 }
 
 .pace strong {
   color: var(--gold);
   font-size: 16px;
   font-weight: 700;
+}
+
+.pace-divider {
+  color: var(--border);
 }
 
 /* TABS */
@@ -261,34 +270,42 @@ body {
 }
 
 .cat-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
   background: var(--bg-2);
   border-radius: 12px;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: all 0.2s;
+  transition: background 0.2s, border 0.2s, box-shadow 0.2s;
   user-select: none;
   -webkit-user-select: none;
 }
 
+.cat-item-tap-area {
+  display: contents;
+}
+
 .cat-item:active {
-  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .cat-item .cat-icon {
   font-size: 22px;
-  width: 28px;
   text-align: center;
-  flex-shrink: 0;
+  grid-column: 1;
 }
 
 .cat-item .cat-name {
-  flex: 1;
   font-size: 15px;
   font-weight: 500;
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cat-item .cat-count {
@@ -296,22 +313,55 @@ body {
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  gap: 2px;
+  grid-column: 3;
+  white-space: nowrap;
 }
 
 .cat-item .cat-count strong {
   color: var(--text);
   font-weight: 700;
-  font-size: 16px;
+  font-size: 18px;
 }
 
+.cat-item .cat-undo-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  grid-column: 4;
+  padding: 0;
+  font-family: inherit;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.cat-item .cat-undo-btn:active {
+  transform: scale(0.85);
+}
+
+.cat-item[data-status="zero"] .cat-undo-btn {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+/* Bottom mini progress bar that spans full width below the row */
 .cat-item .cat-mini-bar {
-  width: 60px;
+  grid-column: 1 / -1;
+  width: 100%;
   height: 4px;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 2px;
   overflow: hidden;
+  margin-top: 6px;
 }
 
 .cat-item .cat-mini-fill {
@@ -482,6 +532,6 @@ footer button.danger {
   .hero { padding: 48px 20px 32px; }
   .cd-num { font-size: 88px; }
   #subject-view { max-width: 720px; margin: 0 auto; }
-  .cat-list { grid-template-columns: 1fr 1fr; }
   .daily-log { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .tabs { max-width: 720px; margin: 0 auto; }
 }
