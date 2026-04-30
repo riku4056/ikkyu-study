@@ -66,11 +66,45 @@
   </section>
 
   <footer>
-    <button id="export-btn">📦 データエクスポート</button>
+    <button id="export-btn">📦 エクスポート</button>
     <button id="import-btn">📥 インポート</button>
     <input type="file" id="import-file" accept="application/json" hidden>
     <button id="reset-btn" class="danger">🗑 リセット</button>
   </footer>
+
+  <!-- 瞑想 起動ボタン -->
+  <button id="meditate-fab" aria-label="5分瞑想を開始">🧘</button>
+
+  <!-- 瞑想モーダル -->
+  <div id="meditate-modal" class="meditate-modal" hidden>
+    <div class="meditate-content">
+      <button id="meditate-close" class="meditate-close" aria-label="閉じる">×</button>
+      <div class="meditate-title">5 MIN MEDITATION</div>
+
+      <div class="breathing-container">
+        <div class="breathing-circle"></div>
+        <div class="breathing-text" id="breathing-text">準備</div>
+      </div>
+
+      <div class="meditate-timer" id="meditate-timer">5:00</div>
+
+      <div class="meditate-toggles">
+        <label class="toggle">
+          <input type="checkbox" id="toggle-music" checked>
+          <span class="toggle-label">🎵 ヒーリング音楽</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-voice" checked>
+          <span class="toggle-label">🔊 ガイド音声</span>
+        </label>
+      </div>
+
+      <button id="meditate-start" class="meditate-start">START</button>
+      <button id="meditate-stop" class="meditate-stop" hidden>STOP</button>
+
+      <div class="meditate-hint">音は最初の操作で許可されます。iPhoneは消音モードを解除してください</div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

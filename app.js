@@ -389,6 +389,242 @@ function bindEvents() {
     if (f) importData(f);
   });
   $('#reset-btn').addEventListener('click', resetData);
+
+  // 瞑想
+  $('#meditate-fab').addEventListener('click', openMeditate);
+  $('#meditate-close').addEventListener('click', closeMeditate);
+  $('#meditate-start').addEventListener('click', startMeditate);
+  $('#meditate-stop').addEventListener('click', stopMeditate);
+}
+
+// === 瞑想モジュール ===
+const meditate = {
+  duration: 5 * 60, // 秒
+  remaining: 5 * 60,
+  timerId: null,
+  audioCtx: null,
+  oscillators: [],
+  masterGain: null,
+  voiceQueue: [],
+  voiceTimers: [],
+  running: false,
+};
+
+function openMeditate() {
+  $('#meditate-modal').hidden = false;
+  resetMeditateUI();
+}
+
+function closeMeditate() {
+  if (meditate.running) stopMeditate();
+  $('#meditate-modal').hidden = true;
+}
+
+function resetMeditateUI() {
+  meditate.remaining = meditate.duration;
+  $('#meditate-timer').textContent = formatTime(meditate.remaining);
+  $('#breathing-text').textContent = '準備';
+  $('#meditate-start').hidden = false;
+  $('#meditate-stop').hidden = true;
+  document.querySelector('.breathing-circle').classList.remove('active');
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function startMeditate() {
+  meditate.running = true;
+  meditate.remaining = meditate.duration;
+  $('#meditate-start').hidden = true;
+  $('#meditate-stop').hidden = false;
+  document.querySelector('.breathing-circle').classList.add('active');
+
+  const wantMusic = $('#toggle-music').checked;
+  const wantVoice = $('#toggle-voice').checked;
+
+  if (wantMusic) startMusic();
+  if (wantVoice) scheduleVoice();
+  startBreathingText();
+
+  meditate.timerId = setInterval(() => {
+    meditate.remaining -= 1;
+    $('#meditate-timer').textContent = formatTime(meditate.remaining);
+    if (meditate.remaining <= 0) {
+      finishMeditate();
+    }
+  }, 1000);
+}
+
+function stopMeditate() {
+  meditate.running = false;
+  clearInterval(meditate.timerId);
+  stopMusic();
+  stopVoice();
+  resetMeditateUI();
+}
+
+function finishMeditate() {
+  meditate.running = false;
+  clearInterval(meditate.timerId);
+  // 終わりの一言（音声ON時）
+  if ($('#toggle-voice').checked) {
+    speak('お疲れさまでした。ゆっくり目を開けてください', { rate: 0.9 });
+  }
+  // 音楽は緩やかにフェードアウト
+  fadeOutMusic(3);
+  flash('🧘 完了 +5分', '#fbbf24');
+  setTimeout(() => {
+    if (!meditate.running) resetMeditateUI();
+  }, 4000);
+}
+
+// === Web Audio: ヒーリングパッド ===
+function startMusic() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    meditate.audioCtx = ctx;
+
+    const master = ctx.createGain();
+    master.gain.value = 0;
+    master.connect(ctx.destination);
+    master.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 3); // フェードイン
+    meditate.masterGain = master;
+
+    // 主和音 (Amaj7 つぽい): A2, E3, A3, C#4, E4
+    const freqs = [110, 164.81, 220, 277.18, 329.63];
+    const types = ['sine', 'sine', 'triangle', 'sine', 'sine'];
+
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = types[i];
+      osc.frequency.value = f;
+
+      const gain = ctx.createGain();
+      gain.gain.value = 0.18 / freqs.length;
+
+      // 微妙な揺らぎ (LFO)
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.05 + Math.random() * 0.1;
+      lfoGain.gain.value = 0.04 / freqs.length;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start();
+
+      // ピッチも微妙に揺らす
+      const pitchLfo = ctx.createOscillator();
+      const pitchLfoGain = ctx.createGain();
+      pitchLfo.frequency.value = 0.1 + Math.random() * 0.15;
+      pitchLfoGain.gain.value = 0.5;
+      pitchLfo.connect(pitchLfoGain);
+      pitchLfoGain.connect(osc.frequency);
+      pitchLfo.start();
+
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start();
+
+      meditate.oscillators.push(osc, lfo, pitchLfo);
+    });
+
+    // ローパスフィルタ（あたたかく）
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    // すでに master に接続済みなので、フィルタはオプション。シンプル維持
+  } catch (e) {
+    console.warn('Audio failed:', e);
+  }
+}
+
+function fadeOutMusic(seconds) {
+  if (!meditate.audioCtx || !meditate.masterGain) return;
+  const ctx = meditate.audioCtx;
+  meditate.masterGain.gain.cancelScheduledValues(ctx.currentTime);
+  meditate.masterGain.gain.setValueAtTime(meditate.masterGain.gain.value, ctx.currentTime);
+  meditate.masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + seconds);
+  setTimeout(stopMusic, seconds * 1000 + 100);
+}
+
+function stopMusic() {
+  meditate.oscillators.forEach(o => { try { o.stop(); } catch (e) {} });
+  meditate.oscillators = [];
+  if (meditate.audioCtx) {
+    try { meditate.audioCtx.close(); } catch (e) {}
+    meditate.audioCtx = null;
+  }
+  meditate.masterGain = null;
+}
+
+// === ガイド音声 (Web Speech API) ===
+function speak(text, opts = {}) {
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP';
+  u.rate = opts.rate || 0.85;
+  u.pitch = opts.pitch || 1;
+  u.volume = opts.volume || 0.85;
+  // 日本語ボイスがあれば使う
+  const voices = speechSynthesis.getVoices();
+  const jp = voices.find(v => v.lang && v.lang.startsWith('ja'));
+  if (jp) u.voice = jp;
+  speechSynthesis.speak(u);
+}
+
+function scheduleVoice() {
+  // 5分間の瞑想ガイド (秒数:文)
+  const script = [
+    [2, '瞑想を始めます。楽な姿勢で、目を閉じてください'],
+    [20, '深く息を吸って'],
+    [25, 'ゆっくり吐いて'],
+    [40, '体の力を抜いて、呼吸に意識を向けて'],
+    [70, '雑念が浮かんでも、優しく呼吸に戻ります'],
+    [110, '吸う息で、新しい空気が入ってきます'],
+    [115, '吐く息で、緊張が抜けていきます'],
+    [160, '今この瞬間に、ただ意識を向けて'],
+    [220, 'もう少しで終わります。最後にもう一度深呼吸を'],
+    [270, 'ゆっくりと意識を戻していきましょう'],
+  ];
+
+  meditate.voiceTimers = script.map(([sec, text]) => {
+    return setTimeout(() => {
+      if (meditate.running && $('#toggle-voice').checked) {
+        speak(text);
+      }
+    }, sec * 1000);
+  });
+}
+
+function stopVoice() {
+  meditate.voiceTimers.forEach(t => clearTimeout(t));
+  meditate.voiceTimers = [];
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+// 呼吸テキスト (吸う/吐く 4秒ずつ → アニメと同期)
+let breathingTextTimer = null;
+function startBreathingText() {
+  const el = $('#breathing-text');
+  let phase = 0;
+  const phases = ['吸って', '吐いて'];
+  el.textContent = phases[0];
+  breathingTextTimer = setInterval(() => {
+    if (!meditate.running) {
+      clearInterval(breathingTextTimer);
+      return;
+    }
+    phase = (phase + 1) % 2;
+    el.textContent = phases[phase];
+  }, 4000);
+}
+
+// 音声リストの初期化（一部ブラウザで必要）
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => {};
 }
 
 init();

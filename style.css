@@ -770,3 +770,258 @@ footer button.danger:hover {
   .daily-log { max-width: 720px; margin-left: auto; margin-right: auto; }
   .tabs { max-width: 720px; margin: 0 auto; }
 }
+
+/* === 瞑想 === */
+#meditate-fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--magenta) 0%, var(--cyan) 100%);
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px rgba(255, 72, 214, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 50;
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+
+#meditate-fab:hover {
+  transform: scale(1.06);
+  box-shadow: 0 12px 32px rgba(255, 72, 214, 0.6);
+}
+
+#meditate-fab:active {
+  transform: scale(0.94);
+}
+
+.meditate-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 1, 26, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.meditate-content {
+  position: relative;
+  width: 92%;
+  max-width: 420px;
+  padding: 40px 28px 28px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.18) 0%, transparent 70%),
+    var(--bg-card);
+  border: 1px solid var(--border-glow);
+  border-radius: 24px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 80px rgba(120, 80, 255, 0.2);
+}
+
+.meditate-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.meditate-close:hover {
+  background: rgba(255, 82, 113, 0.2);
+  color: var(--danger);
+}
+
+.meditate-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+
+/* 呼吸のアニメ */
+.breathing-container {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-circle {
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, var(--cyan) 0%, var(--magenta) 60%, transparent 100%);
+  box-shadow:
+    0 0 60px var(--cyan-glow),
+    inset 0 0 40px rgba(255, 255, 255, 0.2);
+  opacity: 0.7;
+  transform: scale(0.6);
+}
+
+.breathing-circle.active {
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(0.6); opacity: 0.5; }
+  50%      { transform: scale(1);   opacity: 0.9; }
+}
+
+.breathing-text {
+  position: relative;
+  z-index: 1;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.meditate-timer {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #fff 0%, var(--cyan) 60%, var(--magenta) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px var(--cyan-glow));
+  margin: 8px 0 24px;
+}
+
+.meditate-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.toggle input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle input::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.toggle input:checked {
+  background: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 12px var(--cyan-glow);
+}
+
+.toggle input:checked::before {
+  transform: translateX(20px);
+  background: var(--cyan);
+}
+
+.toggle-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.meditate-start, .meditate-stop {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  font-weight: 800;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.meditate-start {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--magenta) 100%);
+  color: var(--bg-deep);
+  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.4);
+}
+
+.meditate-start:hover {
+  box-shadow: 0 8px 32px rgba(0, 229, 255, 0.6);
+}
+
+.meditate-start:active {
+  transform: scale(0.98);
+}
+
+.meditate-stop {
+  background: rgba(255, 82, 113, 0.2);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.meditate-stop:hover {
+  background: rgba(255, 82, 113, 0.35);
+}
+
+.meditate-hint {
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
