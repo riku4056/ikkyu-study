@@ -183,10 +183,10 @@ function getStatus(rounds) {
 
 function statusIcon(status) {
   switch (status) {
-    case 'goal-reached': return '🏆';
-    case 'min-cleared': return '✓';
-    case 'progress': return '▓';
-    default: return '░';
+    case 'goal-reached': return '🌟';
+    case 'min-cleared': return '🛸';
+    case 'progress': return '☄';
+    default: return '·';
   }
 }
 
