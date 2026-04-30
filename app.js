@@ -512,6 +512,7 @@ function finishMeditate() {
 
 // === Web Audio: 音楽合成 ===
 function startMusic(type) {
+  console.log('[music] starting:', type);
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const ctx = new Ctx();
@@ -523,14 +524,20 @@ function startMusic(type) {
     master.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 3);
     meditate.masterGain = master;
 
+    // iOS Safari は suspended で起動することがある → resume
+    if (ctx.state === 'suspended') ctx.resume();
+
     switch (type) {
       case 'cosmic':   buildCosmicPad(ctx, master); break;
       case 'bowls':    buildTibetanBowls(ctx, master); break;
       case 'ocean':    buildOceanDrift(ctx, master); break;
       case 'binaural': buildBinaural(ctx, master); break;
       case 'rain':     buildRain(ctx, master); break;
-      default:         buildCosmicPad(ctx, master);
+      default:
+        console.warn('unknown music type, fallback to cosmic:', type);
+        buildCosmicPad(ctx, master);
     }
+    console.log('[music] started ok');
   } catch (e) {
     console.warn('Audio failed:', e);
   }
@@ -601,40 +608,41 @@ function buildTibetanBowls(ctx, master) {
 }
 
 function buildOceanDrift(ctx, master) {
-  // ピンクノイズに近いノイズ + 低周波で揺らぐローパス
-  const buffer = ctx.createBuffer(2, ctx.sampleRate * 4, ctx.sampleRate);
+  // ホワイトノイズベースで波音風（範囲安全に）
+  const length = ctx.sampleRate * 6;
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buffer.getChannelData(ch);
-    let last = 0;
-    for (let i = 0; i < d.length; i++) {
-      const w = Math.random() * 2 - 1;
-      // 簡易ローパスでピンク化
-      last = (last + 0.02 * w) / 1.02;
-      d[i] = last * 8;
+    for (let i = 0; i < length; i++) {
+      d[i] = (Math.random() * 2 - 1) * 0.6;
     }
   }
   const src = ctx.createBufferSource();
   src.buffer = buffer;
   src.loop = true;
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 600;
-  filter.Q.value = 1.5;
-  // 波のうねり
-  addLFO(ctx, filter.frequency, 0.08, 400);
+
+  // 重ねバンドパス（風と波の質感）
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 700;
+  lp.Q.value = 1.0;
+  // 波のうねり: フィルタを揺らす
+  addLFO(ctx, lp.frequency, 0.1, 300);
+
   const gain = ctx.createGain();
-  gain.gain.value = 0.4;
-  src.connect(filter).connect(gain).connect(master);
+  gain.gain.value = 0.5;
+
+  src.connect(lp).connect(gain).connect(master);
   src.start();
   meditate.audioNodes.push(src);
 
   // 低音ベース
   const sub = ctx.createOscillator();
   sub.type = 'sine';
-  sub.frequency.value = 55;
+  sub.frequency.value = 60;
   const subGain = ctx.createGain();
-  subGain.gain.value = 0.08;
-  addLFO(ctx, subGain.gain, 0.06, 0.04);
+  subGain.gain.value = 0.1;
+  addLFO(ctx, subGain.gain, 0.08, 0.06);
   sub.connect(subGain).connect(master);
   sub.start();
   meditate.oscillators.push(sub);
@@ -747,17 +755,36 @@ function stopMusic() {
 }
 
 // === ガイド音声 (Web Speech API) ===
+function pickJapaneseVoice() {
+  const voices = speechSynthesis.getVoices();
+  const jaVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ja'));
+  if (jaVoices.length === 0) return null;
+  // 優先順: Enhanced/Premium/Siri/Neural >> Kyoko >> その他
+  const priorityKeys = ['enhanced', 'premium', 'siri', 'neural', 'natural'];
+  for (const key of priorityKeys) {
+    const found = jaVoices.find(v => v.name.toLowerCase().includes(key));
+    if (found) { console.log('[voice] selected:', found.name); return found; }
+  }
+  // デフォルトはO-Ren > Kyoko > Otoya 優先
+  const preferOrder = ['o-ren', 'kyoko', 'otoya', 'hattori'];
+  for (const name of preferOrder) {
+    const found = jaVoices.find(v => v.name.toLowerCase().includes(name));
+    if (found) { console.log('[voice] selected:', found.name); return found; }
+  }
+  console.log('[voice] selected (fallback):', jaVoices[0].name);
+  return jaVoices[0];
+}
+
 function speak(text, opts = {}) {
   if (!('speechSynthesis' in window)) return;
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
-    u.rate = opts.rate || 0.85;
-    u.pitch = opts.pitch || 1;
+    u.rate = opts.rate != null ? opts.rate : 1.0;     // 標準速度の方が自然
+    u.pitch = opts.pitch != null ? opts.pitch : 1.05; // ほんの少し高くして優しく
     u.volume = opts.volume != null ? opts.volume : 1;
-    const voices = speechSynthesis.getVoices();
-    const jp = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ja'));
-    if (jp) u.voice = jp;
+    const v = pickJapaneseVoice();
+    if (v) u.voice = v;
     speechSynthesis.speak(u);
   } catch (e) {
     console.warn('speak failed:', e);
@@ -765,17 +792,19 @@ function speak(text, opts = {}) {
 }
 
 function scheduleVoice() {
-  // 5分間の瞑想ガイド (秒数:文) — 0秒は startMeditate 内で先に叫び済み
+  // 5分間の瞑想ガイド (秒数:文) — 0秒は startMeditate 内で先に発声済み
+  // 文を短く区切ると合成音声でも自然に聞こえる
   const script = [
-    [25, '深く息を吸って'],
-    [30, 'ゆっくり吐いて'],
-    [50, '体の力を抜いて、呼吸に意識を向けて'],
-    [85, '雑念が浮かんでも、優しく呼吸に戻ります'],
-    [120, '吸う息で、新しい空気が入ってきます'],
-    [125, '吐く息で、緊張が抜けていきます'],
-    [170, '今この瞬間に、ただ意識を向けて'],
-    [220, 'もう少しで終わります。最後にもう一度深呼吸を'],
-    [270, 'ゆっくりと意識を戻していきましょう'],
+    [25, 'ゆっくり、息を吸って'],
+    [32, '吐いて'],
+    [55, '体の力を抜きましょう'],
+    [90, '雑念が浮かんでも、また呼吸に戻ります'],
+    [125, '吸う息で、新しい空気を取り入れて'],
+    [135, '吐く息で、力を抜いて'],
+    [175, '今この瞬間に、意識を向けて'],
+    [225, 'もうすぐ終わりです'],
+    [240, '最後に、もう一度深呼吸を'],
+    [275, 'ゆっくりと、意識を戻しましょう'],
   ];
 
   meditate.voiceTimers = script.map(([sec, text]) => {
